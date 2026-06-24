@@ -1,0 +1,197 @@
+// Luxor Prime Realty — canonical database schema
+//
+// NOTE ON LOCAL DEV: this sandbox cannot reach binaries.prisma.sh to download
+// the Prisma query engine, so `npx prisma generate` / `db push` cannot run
+// inside this preview. The running app you're seeing uses a JSON-file data
+// layer (lib/data/) with the exact same shapes as these models. On your own
+// machine, run:
+//
+//   npm install
+//   npx prisma generate
+//   npx prisma db push
+//   npx prisma db seed
+//
+// ...and then swap DATABASE_URL to Postgres. lib/data/repository.ts is the
+// single seam to swap from the JSON layer to @prisma/client — see that file.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UnitStatus {
+  AVAILABLE
+  RESERVED
+  SOLD
+}
+
+enum DevelopmentStatus {
+  PRE_LAUNCH
+  UNDER_CONSTRUCTION
+  READY_TO_MOVE
+  SOLD_OUT
+}
+
+enum UnitView {
+  CITY
+  OCEAN
+  GARDEN
+  MOUNTAIN
+  POOL
+  PARTIAL_OCEAN
+}
+
+enum LeadStatus {
+  NEW
+  CONTACTED
+  QUALIFIED
+  NEGOTIATING
+  WON
+  LOST
+}
+
+enum AdminRole {
+  SUPER_ADMIN
+  SALES_MANAGER
+  AGENT
+}
+
+model Development {
+  id               String            @id @default(cuid())
+  slug             String            @unique
+  name             String
+  tagline          String?
+  description      String            @db.Text
+  city             String
+  country          String            @default("Brazil")
+  address          String
+  latitude         Float?
+  longitude        Float?
+  status           DevelopmentStatus @default(UNDER_CONSTRUCTION)
+  startingPriceUsd Decimal           @db.Decimal(14, 2)
+  totalUnits       Int
+  completionDate   DateTime?
+  heroImageUrl     String
+  videoUrl         String?
+  virtualTourUrl   String?
+
+  amenities Amenity[]
+  images    DevelopmentImage[]
+  floors    Floor[]
+  leads     Lead[]
+
+  metaTitle       String?
+  metaDescription String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([city, status])
+}
+
+model DevelopmentImage {
+  id            String      @id @default(cuid())
+  developmentId String
+  development   Development @relation(fields: [developmentId], references: [id], onDelete: Cascade)
+  url           String
+  caption       String?
+  sortOrder     Int         @default(0)
+  category      String      @default("gallery")
+
+  @@index([developmentId])
+}
+
+model Amenity {
+  id           String        @id @default(cuid())
+  name         String
+  icon         String
+  developments Development[]
+}
+
+model Floor {
+  id            String      @id @default(cuid())
+  developmentId String
+  development   Development @relation(fields: [developmentId], references: [id], onDelete: Cascade)
+  floorNumber   Int
+  label         String?
+  floorPlanUrl  String?
+  units         Unit[]
+
+  @@unique([developmentId, floorNumber])
+  @@index([developmentId])
+}
+
+model Unit {
+  id         String     @id @default(cuid())
+  floorId    String
+  floor      Floor      @relation(fields: [floorId], references: [id], onDelete: Cascade)
+  unitNumber String
+  status     UnitStatus @default(AVAILABLE)
+
+  areaSqm    Decimal  @db.Decimal(8, 2)
+  bedrooms   Int
+  bathrooms  Int
+  hasBalcony Boolean  @default(false)
+  view       UnitView?
+  priceUsd   Decimal  @db.Decimal(14, 2)
+
+  positionX Float @default(0)
+  positionY Float @default(0)
+
+  floorPlanImageUrl String?
+  leads             Lead[]
+
+  reservedUntil DateTime?
+  updatedById   String?
+  updatedBy     AdminUser? @relation(fields: [updatedById], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([floorId, status])
+  @@unique([floorId, unitNumber])
+}
+
+model Lead {
+  id            String      @id @default(cuid())
+  developmentId String
+  development   Development @relation(fields: [developmentId], references: [id])
+  unitId        String?
+  unit          Unit?       @relation(fields: [unitId], references: [id])
+
+  name              String
+  email             String
+  phone             String
+  countryCode       String  @default("+1")
+  message           String? @db.Text
+  preferredCurrency String  @default("USD")
+
+  source       String     @default("website")
+  status       LeadStatus @default(NEW)
+  assignedToId String?
+  assignedTo   AdminUser? @relation(fields: [assignedToId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status, createdAt])
+  @@index([developmentId])
+}
+
+model AdminUser {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  passwordHash String
+  name         String
+  role         AdminRole @default(AGENT)
+  isActive     Boolean   @default(true)
+
+  updatedUnits  Unit[]
+  assignedLeads Lead[]
+
+  createdAt DateTime @default(now())
+}
