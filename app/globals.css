@@ -1,0 +1,37 @@
+@import "tailwindcss";
+
+:root {
+  --background: #0a192f;
+  --foreground: #e5e7eb;
+  --color-luxor-primary: #0a192f;
+  --color-luxor-secondary: #112240;
+  --color-luxor-gold: #d4af37;
+  --color-luxor-gold-light: #e5c158;
+  --color-luxor-white: #ffffff;
+  --color-luxor-gray: #e5e7eb;
+  --color-luxor-muted: #9ca3af;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-luxor-primary: var(--color-luxor-primary);
+  --color-luxor-secondary: var(--color-luxor-secondary);
+  --color-luxor-gold: var(--color-luxor-gold);
+  --color-luxor-gold-light: var(--color-luxor-gold-light);
+  --color-luxor-white: var(--color-luxor-white);
+  --color-luxor-gray: var(--color-luxor-gray);
+  --color-luxor-muted: var(--color-luxor-muted);
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", Menlo, monospace;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(212, 175, 55, 0.4) transparent;
+}
